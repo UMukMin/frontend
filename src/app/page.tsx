@@ -1,7 +1,10 @@
+'use client';
+
 import React from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import NavigateButtons from './components/NavigateButtons';
+import RegionButtons from './components/RegionButtons';
+import Link from 'next/link';
 
 const HomePage = () => {
 
@@ -10,7 +13,8 @@ const HomePage = () => {
       <Header />
       <main>
         <h1>Welcome to the Home Page</h1>
-        <NavigateButtons />
+        <RegionButtons />
+        <Link href="/google-map">Google Map</Link>
       </main>
       <Footer />
     </div>
