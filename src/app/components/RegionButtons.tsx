@@ -17,6 +17,7 @@ const NavigateButtons = () => {
       <li onClick={() => navigateToRegion("daegu")}>대구</li>
       <li onClick={() => navigateToRegion("daejeon")}>대전</li>
       <li onClick={() => navigateToRegion("gwangju")}>광주</li>
+      <li onClick={() => navigateToRegion("gwangju")}>제주</li>
     </div>
   );
 };
