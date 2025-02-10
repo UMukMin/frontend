@@ -14,7 +14,8 @@ const HomePage = () => {
       <main>
         <h1>Welcome to the Home Page</h1>
         <RegionButtons />
-        <Link href="/google-map">Google Map</Link>
+        <Link href="/googleMap">Google Map</Link> <br />
+        <Link href="/restaurants">Restaurants</Link>
       </main>
       <Footer />
     </div>

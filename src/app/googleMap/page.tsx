@@ -1,15 +1,20 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import Link from 'next/link';
+import { fetchRestaurantData, postRestaurantData } from './api';
 
 // Add this line to import the Google Maps types
 /// <reference types="@types/google.maps" />
 
 const GoogleMapPage: React.FC = () => {
   const [selectedPlace, setSelectedPlace] = useState <google.maps.places.PlaceResult | null>(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   useEffect(() => {
+
+    if (isMapLoaded) return;
+
     const initMap = () => {
       const map = new google.maps.Map(document.getElementById('map') as HTMLElement, {
         center: { lat: 37.5665, lng: 126.9780 }, // 서울의 위도와 경도
@@ -55,25 +60,35 @@ const GoogleMapPage: React.FC = () => {
           }
 
           setSelectedPlace(place);
+          fetchRestaurantData(place.formatted_address || '');
         });
         map.fitBounds(bounds);
       });
     };
 
     if (!window.google) {
+      
       const script = document.createElement('script');
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ko&callback=initMap`;
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
+
       script.onload = () => {
+        setIsMapLoaded(true);
         initMap();
       };
+
+      script.onerror = () => {
+        console.error('Error loading the Google Maps script!');
+      };
+
     } else {
+      setIsMapLoaded(true);
       initMap();
     }
-  }, []);
+  }, [isMapLoaded]);
 
   const handleRegister = () => {
     if (selectedPlace && selectedPlace.geometry && selectedPlace.geometry.location) {
@@ -85,7 +100,9 @@ const GoogleMapPage: React.FC = () => {
         // Add other necessary fields here
       };
 
-      axios.post('/api/restaurants', restaurantData)
+      console.log(restaurantData);
+
+      postRestaurantData(restaurantData)
         .then(response => {
           console.log('Restaurant information inserted successfully:', response.data);
         })
@@ -97,7 +114,7 @@ const GoogleMapPage: React.FC = () => {
 
   return (
     <div>
-      <h1>Google Map</h1>
+      <h1>Google Map</h1> <Link href="/">Home</Link>
       <input 
         id="pac-input" 
         type="text" 
