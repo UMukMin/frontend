@@ -14,8 +14,8 @@ const HomePage = () => {
       <main>
         <h1>Welcome to the Home Page</h1>
         <RegionButtons />
-        <Link href="/googleMap">Google Map</Link> <br />
-        <Link href="/restaurants">Restaurants</Link>
+        <Link href="/googleMap">✨ 맛있는 음식점 등록하기 ✨</Link> 
+        <br />
       </main>
       <Footer />
     </div>
