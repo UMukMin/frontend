@@ -1,5 +1,12 @@
 import axios from 'axios';
 
+interface RestaurantData {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
+
 export const fetchRestaurantData = (address: string) => {
   return axios.get(`/api/restaurants?address=${encodeURIComponent(address)}`)
     .then(response => {
@@ -12,7 +19,7 @@ export const fetchRestaurantData = (address: string) => {
     });
 };
 
-export const postRestaurantData = (restaurantData: any) => {
+export const postRestaurantData = (restaurantData: RestaurantData) => {
   return axios.post('/api/restaurants', restaurantData)
     .then(response => {
       console.log('Restaurant information inserted successfully:', response.data);
