@@ -1,145 +1,270 @@
-"use client";  
+"use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { fetchRestaurantData } from "./api";
-import Link from "next/link"; 
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { Loader } from "@googlemaps/js-api-loader";
+import Link from "next/link";
 
-declare global {
-  interface Window {
-    initMap: () => void;
-  }
+interface LocationInfo {
+  address: string;
+  lat: number;
+  lng: number;
 }
 
 const GoogleMapPage: React.FC = () => {
-  const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [reviews, setReviews] = useState<{ rating: number; comment: string }[]>([]);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
+  const selectedMarkerRef = useRef<google.maps.Marker | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<LocationInfo | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isFirstUpdate = useRef(true);
 
-  const handleReviewSubmit = useCallback(() => {
-    setReviews((prevReviews) => [...prevReviews, { rating, comment }]);
-    setRating(0);
-    setComment("");
-  }, [rating, comment]);
+  const updateMarkerPosition = useCallback((position: GeolocationPosition) => {
+    const userLocation = {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+    };
 
-  const loadGoogleMapsScript = useCallback(() => {
-    if (typeof window === "undefined") return; 
-    if (!window.google || !window.google.maps) {
-      const scriptId = "google-maps-script";
-      if (!document.getElementById(scriptId)) {
-        const script = document.createElement("script");
-        script.id = scriptId;
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&language=ko&callback=initMap`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
+    const heading = position.coords.heading;
 
-        script.onload = () => window.initMap?.();
-        script.onerror = () => console.error("Google Maps 스크립트 로드 오류 ~!");
+    if (!markerRef.current && mapRef.current) {
+      const locationIcon = {
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: '#4285F4',
+        fillOpacity: 1,
+        scale: 8,
+        strokeColor: '#FFFFFF',
+        strokeWeight: 2,
+      };
+
+      markerRef.current = new google.maps.Marker({
+        position: userLocation,
+        map: mapRef.current,
+        icon: locationIcon,
+        title: "현재 위치",
+        clickable: true,
+        zIndex: 1
+      });
+    } else if (markerRef.current) {
+      const animationDuration = 200;
+      const start = markerRef.current.getPosition();
+      if (!start) return;
+
+      const startTime = Date.now();
+
+      const animate = () => {
+        if (!markerRef.current) return;
+
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / animationDuration, 1);
+
+        const lat = start.lat() + (userLocation.lat - start.lat()) * progress;
+        const lng = start.lng() + (userLocation.lng - start.lng()) * progress;
+        const newPos = new google.maps.LatLng(lat, lng);
+
+        markerRef.current.setPosition(newPos);
+
+        if (heading !== null && heading !== undefined) {
+          const currentIcon = markerRef.current.getIcon() as google.maps.Symbol;
+          const updatedIcon = {
+            ...currentIcon,
+            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            rotation: heading,
+            scale: 8
+          };
+          markerRef.current.setIcon(updatedIcon);
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    }
+
+    if (isFirstUpdate.current && mapRef.current) {
+      mapRef.current.setCenter(userLocation);
+      mapRef.current.setZoom(17);
+      isFirstUpdate.current = false;
+    }
+  }, []);
+
+  const trackUserLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation을 지원하지 않는 브라우저입니다.");
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      updateMarkerPosition,
+      (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError("위치 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError("위치 정보를 사용할 수 없습니다.");
+            break;
+          case error.TIMEOUT:
+            setLocationError("위치 정보를 가져오는 데 시간이 초과되었습니다.");
+            break;
+          default:
+            setLocationError("알 수 없는 오류가 발생했습니다.");
+            break;
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0, // 항상 최신 위치 정보 사용
+        timeout: 5000
       }
-    } else {
-      window.initMap?.();
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [updateMarkerPosition]);
+
+  const getAddressFromLatLng = useCallback(async (latLng: google.maps.LatLng) => {
+    const geocoder = new google.maps.Geocoder();
+    try {
+      const response = await geocoder.geocode({ location: latLng });
+      if (response.results[0]) {
+        const locationInfo: LocationInfo = {
+          address: response.results[0].formatted_address,
+          lat: latLng.lat(),
+          lng: latLng.lng()
+        };
+        setSelectedLocation(locationInfo);
+        setIsSidebarOpen(true);
+
+        if (selectedMarkerRef.current) {
+          selectedMarkerRef.current.setMap(null);
+        }
+        selectedMarkerRef.current = new google.maps.Marker({
+          position: latLng,
+          map: mapRef.current,
+          title: locationInfo.address,
+          animation: google.maps.Animation.DROP,
+          clickable: false
+        });
+      }
+    } catch (error) {
+      console.error("Geocoding failed:", error);
+      setLocationError("주소를 가져오는데 실패했습니다.");
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return; 
-    if (isMapLoaded) return;
+    const loader = new Loader({
+      apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+      version: "weekly",
+      libraries: ["places"]
+    });
 
-    window.initMap = () => {
+    loader.load().then(() => {
       const defaultLocation = { lat: 37.5665, lng: 126.978 };
-      const map = new google.maps.Map(document.getElementById("map") as HTMLElement, {
-        center: defaultLocation,
-        zoom: 15,
-      });
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const userLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            };
-
-            map.setCenter(userLocation);
-            new google.maps.Marker({
-              map,
-              position: userLocation,
-              icon: { url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" },
-            });
+      const mapInstance = new google.maps.Map(
+        document.getElementById("map") as HTMLElement,
+        {
+          center: defaultLocation,
+          zoom: 15,
+          disableDefaultUI: false,
+          clickableIcons: false,
+          mapTypeControl: true,
+          mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
           },
-          (error) => console.error("위치 정보를 가져올 수 없습니다.", error)
-        );
-      }
+          scaleControl: true,
+          zoomControl: true,
+          zoomControlOptions: {
+            position: google.maps.ControlPosition.RIGHT_BOTTOM,
+          },
+          streetViewControl: false,
+        }
+      );
 
-      const input = document.getElementById("pac-input") as HTMLInputElement;
-      const searchBox = new google.maps.places.SearchBox(input);
-      map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
-
-      let markers: google.maps.Marker[] = [];
-
-      searchBox.addListener("places_changed", () => {
-        const places = searchBox.getPlaces();
-        if (!places?.length) return;
-
-        markers.forEach((marker) => marker.setMap(null));
-        markers = [];
-
-        const bounds = new google.maps.LatLngBounds();
-        places.forEach((place) => {
-          if (!place.geometry?.location) return;
-
-          const marker = new google.maps.Marker({
-            map,
-            position: place.geometry.location,
-          });
-          markers.push(marker);
-
-          bounds.extend(place.geometry.location);
-          setSelectedPlace(place);
-          fetchRestaurantData(place.formatted_address || "");
-        });
-
-        map.fitBounds(bounds);
+      mapInstance.addListener("click", (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          getAddressFromLatLng(e.latLng);
+        }
       });
-      setIsMapLoaded(true);
+
+      mapRef.current = mapInstance;
+      trackUserLocation();
+    });
+
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      if (selectedMarkerRef.current) {
+        selectedMarkerRef.current.setMap(null);
+        selectedMarkerRef.current = null;
+      }
     };
-    loadGoogleMapsScript();
-  }, [isMapLoaded, loadGoogleMapsScript]);
+  }, [trackUserLocation, getAddressFromLatLng]);
 
   return (
-    <div>
-      <h1>Google Map</h1>
-      <Link href="/">Home</Link> 
-      <input id="pac-input" type="text" placeholder="검색" style={{ marginBottom: "10px", padding: "5px", width: "300px" }} />
-      <div id="map" style={{ height: "660px", width: "540px" }}></div>
-      {selectedPlace && <ReviewSection rating={rating} setRating={setRating} comment={comment} setComment={setComment} handleReviewSubmit={handleReviewSubmit} reviews={reviews} />}
+    <div className="flex h-screen">
+      <div 
+        className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out w-96 transform ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">위치 정보</h2>
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {selectedLocation && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700">주소</h3>
+                <p className="text-gray-600">{selectedLocation.address}</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700">좌표</h3>
+                <p className="text-gray-600">
+                  위도: {selectedLocation.lat.toFixed(6)}<br />
+                  경도: {selectedLocation.lng.toFixed(6)}
+                </p>
+              </div>
+              <button
+                className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+                onClick={() => {
+                  console.log('위치 저장:', selectedLocation);
+                }}
+              >
+                이 위치로 등록하기
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">Google Map</h1>
+          <Link href="/" className="text-blue-500 hover:underline mb-4">
+            Home
+          </Link>
+          {locationError && (
+            <p className="text-red-500 font-semibold mb-2">{locationError}</p>
+          )}
+          <div id="map" className="h-[500px] w-[600px] rounded-md shadow-lg bg-white cursor-pointer"></div>
+        </div>
+      </div>
     </div>
   );
 };
-
-const ReviewSection: React.FC<{
-  rating: number;
-  setRating: (value: number) => void;
-  comment: string;
-  setComment: (value: string) => void;
-  handleReviewSubmit: () => void;
-  reviews: { rating: number; comment: string }[];
-}> = ({ rating, setRating, comment, setComment, handleReviewSubmit }) => (
-  <div style={{ marginTop: "20px" }}>
-    <h2>맛있다고 생각한 음식점 등록 하기</h2>
-    <form onSubmit={(e) => {
-      e.preventDefault();
-      handleReviewSubmit();
-    }}>
-      <label>Rating:<input type="number" min="1" max="3" value={rating} onChange={(e) => setRating(Number(e.target.value))} required /></label>
-      <br />
-      <label>Comment:<textarea value={comment} onChange={(e) => setComment(e.target.value)} required /></label>
-      <br />
-      <button type="submit">등록하기</button>
-    </form>
-  </div>
-);
 
 export default GoogleMapPage;
