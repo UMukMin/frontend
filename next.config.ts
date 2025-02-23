@@ -1,10 +1,9 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   serverRuntimeConfig: {
     host: '0.0.0.0',
     port: 3000,
-},
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

@@ -1,0 +1,86 @@
+.container {
+  @apply min-h-screen flex flex-col;
+}
+
+.main {
+  @apply flex-1;
+}
+
+.hero_section {
+  @apply bg-gradient-to-r from-[#ff9600] to-[#ff7a00] py-12 sm:py-16 md:py-20;
+}
+
+.contents_fixed {
+  @apply w-full mx-auto px-4 
+    max-w-full 
+    sm:max-w-[540px] 
+    md:max-w-[720px] 
+    lg:max-w-[960px] 
+    xl:max-w-[1000px];
+}
+
+.main_title {
+  @apply text-white text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4;
+}
+
+.sub_title {
+  @apply block text-lg sm:text-xl md:text-2xl mt-2 font-normal;
+}
+
+.search_section {
+  @apply mt-8 max-w-2xl mx-auto;
+}
+
+.search_box {
+  @apply flex gap-2 bg-white rounded-lg p-2 shadow-lg;
+}
+
+.search_input {
+  @apply flex-1 px-4 py-2 text-lg border-none outline-none rounded-md;
+}
+
+.search_button {
+  @apply bg-[#ff9600] text-white px-6 py-2 rounded-md hover:bg-[#ff7a00] 
+    transition-colors font-medium text-lg;
+}
+
+.region_section {
+  @apply py-12 bg-white;
+}
+
+.section_title {
+  @apply text-xl sm:text-2xl font-bold text-[#13131e] mb-6 text-center;
+}
+
+.register_section {
+  @apply py-12 bg-[#f8f8f8];
+}
+
+.register_box {
+  @apply text-center max-w-2xl mx-auto;
+}
+
+.register_title {
+  @apply text-xl sm:text-2xl font-bold text-[#13131e] mb-3;
+}
+
+.register_desc {
+  @apply text-[#595960] mb-6;
+}
+
+.register_button {
+  @apply inline-block bg-[#ff9600] text-white px-8 py-3 rounded-md 
+    hover:bg-[#ff7a00] transition-colors font-medium text-lg;
+}
+
+/* RegionButtons 컴포넌트용 스타일 */
+.region_grid {
+  @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4;
+}
+
+.region_button {
+  @apply flex items-center justify-center px-4 py-3 
+    bg-white border border-[#e9e9e9] rounded-md
+    hover:border-[#ff9600] hover:text-[#ff9600] 
+    transition-colors text-[#13131e];
+} 
