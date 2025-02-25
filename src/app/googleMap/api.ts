@@ -1,32 +1,13 @@
 import axios from 'axios';
+import { RestaurantData } from './types';
 
-interface RestaurantData {
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-}
-
-export const fetchRestaurantData = (address: string) => {
-  return axios.get(`/api/restaurants?address=${encodeURIComponent(address)}`)
-    .then(response => {
-      console.log('Fetched restaurant data:', response.data);
-      return response.data;
-    })
-    .catch(error => {
-      console.error('Error fetching restaurant data:', error);
-      throw error;
-    });
-};
-
-export const postRestaurantData = (restaurantData: RestaurantData) => {
-  return axios.post('/api/restaurants', restaurantData)
-    .then(response => {
-      console.log('Restaurant information inserted successfully:', response.data);
-      return response.data;
-    })
-    .catch(error => {
-      console.error('Error inserting restaurant information:', error);
-      throw error;
-    });
+export const postRestaurantLocation = async (restaurantData: RestaurantData) => {
+  console.log(restaurantData);
+  try {
+    const response = await axios.post('/api/restaurants', restaurantData);
+    return response.data;
+  } catch (error) {
+    console.error('Error saving restaurant Data:', error);
+    throw error;
+  }
 };
