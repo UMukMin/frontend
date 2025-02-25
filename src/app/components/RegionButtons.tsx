@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import styles from '@/app/styles/pages/home.module.css';
 
 const RegionButtons = () => {
   const regions = [
@@ -13,12 +12,12 @@ const RegionButtons = () => {
   ];
 
   return (
-    <div className={styles.region_grid}>
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
       {regions.map((region) => (
         <Link 
           key={region}
           href={`/restaurants/${region.toLowerCase()}`}
-          className={styles.region_button}
+          className="flex items-center justify-center px-4 py-3 bg-white rounded-lg shadow hover:shadow-md transition-shadow text-gray-800 hover:text-primary"
         >
           {region}
         </Link>
