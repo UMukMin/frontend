@@ -77,4 +77,4 @@ export interface TranslationType {
   ko: TranslationContent;
   en: TranslationContent;
   ja: TranslationContent;
-} 
+}
