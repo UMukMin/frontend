@@ -34,3 +34,31 @@ body {
   background: var(--background);
   font-family: var(--font-geist-sans), Arial, sans-serif;
 } 
+
+/* styles/globals.css 혹은 해당 컴포넌트 css 파일 */
+
+.map-container {
+  width: 100%;
+  height: 100vh; /* 기본 전체 높이로 설정 */
+}
+
+/* PC */
+@media (min-width: 1024px) {
+  .map-container {
+    height: calc(100vh - 100px); /* 헤더나 기타 UI를 감안한 높이 */
+  }
+}
+
+/* Tablet */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .map-container {
+    height: calc(100vh - 80px);
+  }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .map-container {
+    height: calc(100vh - 60px);
+  }
+}
