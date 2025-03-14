@@ -10,6 +10,7 @@ const RestaurantsPage = () => {
     <div>
       <h1>{t.restaurants.title}</h1>
       <p>{t.restaurants.description}</p>
+      <h1>pr test</h1>
       <Restaurant />
     </div>
   );
